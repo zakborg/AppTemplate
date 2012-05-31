@@ -24,7 +24,7 @@ public class AutopilotWebservices extends ServerResource {
 	 * 
 	 */
 	public AutopilotWebservices(MotorController motorController, RudderController rudderController,
-			GpsReceiver gpsReceiver) {
+			GpsReceiver gpsReceiver, PathPlanningController pathPlanningController) {
 		// Set caching directives to noCache and noStore
 		cacheDirectives.add(CacheDirective.noCache());
 		cacheDirectives.add(CacheDirective.noStore());
@@ -56,7 +56,13 @@ public class AutopilotWebservices extends ServerResource {
 				"/rudder",
 				new RudderControllerApplication(cacheDirectives,
 						rudderController));
-
+		
+		// Attach the Path Planner (Autopilot) application
+				component.getDefaultHost().attach(
+						"/pathPlanner",
+						new PathControllerApplication(cacheDirectives,
+								motorController, rudderController,gpsReceiver,pathPlanningController));
+				
 		// Attach the GPS receiver application
 		component.getDefaultHost().attach("/gps",
 				new GPSReceiverApplication(cacheDirectives, gpsReceiver));
@@ -66,6 +72,12 @@ public class AutopilotWebservices extends ServerResource {
 				"/motionControlPage",
 				new MotionControlPageApplication(cacheDirectives,
 						motorController, rudderController));
+		
+		// Attach the Path Planning control feedback application
+				component.getDefaultHost().attach(
+						"/pathPlanningControlPage",
+						new PathControlPageApplication(cacheDirectives,
+								motorController, rudderController,gpsReceiver,pathPlanningController));
 	}
 
 	public void start() throws Exception {

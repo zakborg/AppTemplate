@@ -24,6 +24,7 @@ public class Main {
 		AutopilotWebservices webServices;
 		MotorController motorController;
 		RudderController rudderController;
+		PathPlanningController pathPlanningController;
 		// Initialise LabJack
 		try {
 			logger.info("Initialising LabJack ...");
@@ -46,15 +47,21 @@ public class Main {
 			logger.info("Initialising rudder controller ... ");
 			rudderController = new RudderController(labJack);
 			logger.info("Rudder controller initialised successfully");
-
+			
+			
+			logger.info("Initialising Path Planning controller ... ");
+			pathPlanningController = new PathPlanningController();
+			logger.info("Path Planning controller initialised successfully");
+			
+            			
 			logger.info("Initialising GPS receiver ... ");
 			gpsReceiver = new GpsReceiver(Constants.GPS.HOST,
 					Constants.GPS.PORT);
 			logger.info("GPS receiver initialised successfully");
-
+			
 			logger.info("Initialising web services ... ");
 			webServices = new AutopilotWebservices( motorController,
-					rudderController, gpsReceiver);
+					rudderController, gpsReceiver, pathPlanningController);
 			logger.info("Web services initialised successfully");
 
 			logger.info("Starting restlet web servicves ... ");
