@@ -65,6 +65,7 @@ public class Constants {
 		// TODO What exactly should RUDDER_DELAY represent?
 		public final static MInteger RUDDER_DELAY = new MInteger(50);
 		public final static MInteger ROTATIONS = new MInteger(5);
+		public final static MInteger BIG_ROTATIONS = new MInteger(20);
 	}
 
 	/**
@@ -75,4 +76,5 @@ public class Constants {
 		public final static MString HOST = new MString("192.168.1.1");
 		public final static MInteger PORT = new MInteger(2947);
 	}
+
 }

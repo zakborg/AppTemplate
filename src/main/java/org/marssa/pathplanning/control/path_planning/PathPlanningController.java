@@ -1,33 +1,37 @@
 package org.marssa.pathplanning.control.path_planning;
 
 import java.io.IOException;
+import java.util.ArrayList;
+
+import mise.marssa.footprint.datatypes.MBoolean;
+import mise.marssa.footprint.datatypes.composite.Coordinate;
+import mise.marssa.footprint.datatypes.decimal.DegreesDecimal;
+import mise.marssa.footprint.datatypes.decimal.MDecimal;
+import mise.marssa.footprint.datatypes.integer.MInteger;
+import mise.marssa.footprint.exceptions.ConfigurationError;
+import mise.marssa.footprint.exceptions.NoConnection;
+import mise.marssa.footprint.exceptions.NoValue;
+import mise.marssa.footprint.exceptions.OutOfRange;
+import mise.marssa.footprint.interfaces.control.motor.IMotorController;
+import mise.marssa.footprint.interfaces.control.rudder.IRudderController;
+import mise.marssa.services.control.Ramping;
+import mise.marssa.services.diagnostics.daq.LabJack;
+import mise.marssa.services.diagnostics.daq.LabJackU3;
+import mise.marssa.services.navigation.GpsReceiver;
+import mise.marssa.services.scheduling.MTimer;
+import mise.marssa.services.scheduling.MTimerTask;
 
 import org.marssa.pathplanning.constants.Constants;
 import org.marssa.pathplanning.control.electrical_motor.MotorController;
 import org.marssa.pathplanning.control.rudder.RudderController;
 
-import mise.marssa.footprint.datatypes.MBoolean;
-import mise.marssa.footprint.datatypes.decimal.MDecimal;
-import mise.marssa.footprint.datatypes.integer.MInteger;
-import mise.marssa.footprint.exceptions.ConfigurationError;
-import mise.marssa.footprint.exceptions.NoConnection;
-import mise.marssa.footprint.exceptions.OutOfRange;
-import mise.marssa.footprint.interfaces.control.IController.Polarity;
-import mise.marssa.footprint.interfaces.control.motor.IMotorController;
-import mise.marssa.footprint.interfaces.control.rudder.IRudderController;
-import mise.marssa.services.control.Ramping;
-import mise.marssa.services.control.Ramping.RampingType;
-import mise.marssa.services.diagnostics.daq.LabJack;
-import mise.marssa.services.diagnostics.daq.LabJackU3;
-import mise.marssa.services.diagnostics.daq.LabJackU3.TimerConfigModeU3;
-import mise.marssa.services.navigation.GpsReceiver;
-
 /**
  * @author Clayton Tabone
  * 
  */
-public class PathPlanningController implements IMotorController,IRudderController {
+public class PathPlanningController extends MTimerTask implements IMotorController,IRudderController{
 	
+	private static final MTimerTask MTimerTask = null;
 	private MotorController motorController;
 	private RudderController rudderController;
 	private GpsReceiver gpsReceiver;
@@ -49,25 +53,178 @@ public class PathPlanningController implements IMotorController,IRudderControlle
 	private final MInteger MOTOR_1_DIRECTION = LabJack.FIO7_ADDR;
 	private final MInteger STEP_DELAY = new MInteger(20);
 	private final MDecimal STEP_SIZE = new MDecimal(1.0f);
-
+ 
+	private Coordinate nextHeading;
+	private int count = 0;
 	private LabJack lj;
-
+	ArrayList<Coordinate> pathList;
+	MTimer timer;
 	/**
 	 * @throws ConfigurationError
 	 * @throws OutOfRange
 	 * @throws NoConnection
 	 * 
-	 */
-	
-		
+	 */	
 	public  PathPlanningController(MotorController motorController, 
 			RudderController rudderController, GpsReceiver gpsReceiver)
 	{
 		this.motorController = motorController;
 		this.rudderController = rudderController;
 		this.gpsReceiver = gpsReceiver;
+		timer = MTimer.getInstance();
+		pathList = new ArrayList<Coordinate>();
 	}
 	
+	
+	//Path Planning Controller
+	
+	public ArrayList<Coordinate> getPathList() {
+		return pathList;
+	}
+
+
+	public void setPathList(ArrayList<Coordinate> pathList) {
+		this.pathList = pathList;
+	}
+
+
+	public Coordinate getNextHeading() {
+		return nextHeading;
+	}
+	
+	public void setNextHeading(Coordinate nextHeading) {
+		this.nextHeading = nextHeading;
+	}
+	
+	public void drive() throws NoConnection, NoValue, OutOfRange, InterruptedException {
+		
+		double currentHeading = gpsReceiver.getCOG().doubleValue();
+		double targetHeading = determineHeading();
+		double difference =  (currentHeading - targetHeading) * -1;
+		
+		if ((difference >= 5) && (difference <= 15))
+		{
+			if (currentHeading < targetHeading)
+			{
+				rudderController.rotateMultiple(Constants.RUDDER.ROTATIONS, new MBoolean(true));
+				rotateToCentre();
+			}
+			else
+			{
+				rudderController.rotateMultiple(Constants.RUDDER.ROTATIONS, new MBoolean(false));
+				rotateToCentre();
+			}
+		}
+		else if (difference > 15)
+		{
+			if (currentHeading < targetHeading)
+			{
+				rudderController.rotateMultiple(Constants.RUDDER.BIG_ROTATIONS , new MBoolean(true));
+				rotateToCentre();
+			}
+			else
+			{
+				rudderController.rotateMultiple(Constants.RUDDER.BIG_ROTATIONS , new MBoolean(false));
+				rotateToCentre();
+			}
+		}
+		//calculate bearing
+	}
+	
+	public double determineHeading() throws NoConnection, NoValue, OutOfRange
+	{
+		Coordinate currentPosition = gpsReceiver.getCoordinate();
+		
+		//double dLat = Math.toRadians(nextHeading.getLatitude().getDMS().doubleValue() - currentPosition.getLatitude().getDMS().doubleValue());
+		double dLon = Math.toRadians(nextHeading.getLongitude().getDMS().doubleValue() - currentPosition.getLongitude().getDMS().doubleValue());
+		
+		double y = Math.sin(dLon) * Math.cos(currentPosition.getLatitude().getDMS().doubleValue());
+		double x = Math.cos(nextHeading.getLatitude().getDMS().doubleValue())*Math.sin(currentPosition.getLatitude().getDMS().doubleValue()) -
+		        Math.sin(nextHeading.getLatitude().getDMS().doubleValue())*Math.cos(currentPosition.getLatitude().getDMS().doubleValue())*Math.cos(dLon);
+		return Math.atan2(y, x);
+	}
+	public boolean arrived() throws NoConnection, NoValue, OutOfRange
+	{
+		Coordinate currentPosition = gpsReceiver.getCoordinate();
+		double radius = 6371; // km
+		double dLat = Math.toRadians(nextHeading.getLatitude().getDMS().doubleValue() - currentPosition.getLatitude().getDMS().doubleValue());
+		double dLon = Math.toRadians(nextHeading.getLongitude().getDMS().doubleValue() - currentPosition.getLongitude().getDMS().doubleValue());
+		double lat1 = Math.toRadians(nextHeading.getLatitude().getDMS().doubleValue());
+		double lat2 = Math.toRadians(currentPosition.getLatitude().getDMS().doubleValue());
+		
+		double angle = Math.sin(dLat/2) * Math.sin(dLat/2) +
+		        Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
+		double c = 2 * Math.atan2(Math.sqrt(angle), Math.sqrt(1-angle)); 
+		double distance = radius * c;
+		
+		if (distance < 0.01)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	
+	public boolean endOfTrip()
+	{
+		if (count == pathList.size())
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	
+	public void run()
+	{
+		try {
+			if (arrived() && endOfTrip())
+			{
+				motorController.rampTo(new MDecimal(0));
+			}
+			else if (arrived() && ! endOfTrip())
+			{
+				count++;
+				setNextHeading(pathList.get(count)); 
+				drive();
+			}
+			else
+			{
+				drive();
+			}
+		} catch (NoConnection e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoValue e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (OutOfRange e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ConfigurationError e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void startFollowingPath()
+	{
+		setNextHeading(pathList.get(count)); 
+		timer.addSchedule(this , 1000);
+	}
+	
+	public void stopFollowingPath()
+	{
+		timer.cancel();
+	}
+	//Path Planning Controller
 	//Motor Controller
 
 	public void outputValue(MDecimal motorSpeed) throws ConfigurationError,
@@ -83,7 +240,6 @@ public class PathPlanningController implements IMotorController,IRudderControlle
 				(int) (actualValue.doubleValue() * 0.9)));
 		lj.setTimerValue(LabJackU3.TimerU3.TIMER_1, actualValue);
 	}
-
 
 	public MDecimal getValue() {
 		return ramping.getCurrentValue();

@@ -45,62 +45,41 @@ public class PathControllerApplication extends Application {
     public synchronized Restlet createInboundRoot() {
         Router router = new Router(getContext());
                 // Create the motor speed control handler
-        Restlet speedControl = new Restlet() {
+        Restlet stopFollowing = new Restlet() {
         	@Override
             public void handle(Request request, Response response) {
         		response.setCacheDirectives(cacheDirectives);
         		try {
-        			double value = Float.parseFloat(request.getAttributes().get("speed").toString());
-        			motorController.rampTo(new MDecimal(value));
-        			response.setEntity("Ramping motor speed to " + value + "%", MediaType.TEXT_PLAIN);
+        			pathPlanningController.stopFollowingPath();
+        			response.setEntity("The system has stopped following the path ", MediaType.TEXT_PLAIN);
         		} catch (NumberFormatException e) {
         			response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, "The value of the speed resource has an incorrect format");
-        		} catch (InterruptedException e) {
-        			response.setStatus(Status.INFO_PROCESSING, "The ramping algorithm has been interrupted");
-        			e.printStackTrace();
-				} catch (ConfigurationError e) {
-					response.setStatus(Status.SERVER_ERROR_INTERNAL, "The request has returned a ConfigurationError");
-					e.printStackTrace();
-				} catch (OutOfRange e) {
-					response.setStatus(Status.SERVER_ERROR_INTERNAL, "The specified value is out of range");
-					e.printStackTrace();
-				}
+        		} 
             }
         };
         
         // Create the increase motor speed control handler
-        Restlet increaseSpeed = new Restlet() {
+        Restlet startFollowing = new Restlet() {
         	@Override
             public void handle(Request request, Response response) {
         		response.setCacheDirectives(cacheDirectives);
         		try {
-        			motorController.increase(Constants.MOTOR.STEP_SIZE);
-    				response.setEntity("Increasing motor speed by " + Constants.MOTOR.STEP_SIZE + "%", MediaType.TEXT_PLAIN);
+        			pathPlanningController.startFollowingPath();
+        			response.setEntity("The system has started following the path ", MediaType.TEXT_PLAIN);
         		} catch (NumberFormatException e) {
         			response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, "The value of the speed resource has an incorrect format");
-        		} catch (InterruptedException e) {
-        			response.setStatus(Status.INFO_PROCESSING, "The ramping algorithm has been interrupted");
-        			e.printStackTrace();
-				} catch (ConfigurationError e) {
-					response.setStatus(Status.SERVER_ERROR_INTERNAL, "The request has returned a ConfigurationError");
-					e.printStackTrace();
-				} catch (OutOfRange e) {
-					response.setStatus(Status.SERVER_ERROR_INTERNAL, "The specified value is out of range");
-					e.printStackTrace();
-				} catch (NoConnection e) {
-					response.setStatus(Status.SERVER_ERROR_INTERNAL, "No connection error has been returned");
-					e.printStackTrace();
-				}
+        		} 
             }
         };
         
         // Create the decrease motor speed control handler
-        Restlet decreaseSpeed = new Restlet() {
+        Restlet setPath = new Restlet() {
         	@Override
             public void handle(Request request, Response response) {
         		response.setCacheDirectives(cacheDirectives);
         		try {
-					motorController.decrease(Constants.MOTOR.STEP_SIZE);
+        			boolean direction = Boolean.parseBoolean(request.getAttributes().get("coordinates").toString());
+        			pathPlanningController.setPathList(pathList);
     				response.setEntity("Decreasing motor speed by " + Constants.MOTOR.STEP_SIZE + "%", MediaType.TEXT_PLAIN);
         		} catch (NumberFormatException e) {
         			response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, "The value of the speed resource has an incorrect format");
@@ -120,20 +99,10 @@ public class PathControllerApplication extends Application {
             }
         };
         
-        // Create the motor speed monitoring handler
-        Restlet speedMonitor = new Restlet() {
-        	@Override
-            public void handle(Request request, Response response) {
-        		response.setCacheDirectives(cacheDirectives);
-    			response.setEntity(motorController.getValue().toString(), MediaType.TEXT_PLAIN);
-            }
-        };
-        
-        router.attach("/nextWayPoint/{coordinate}", speedControl);
-        router.attach("/start", increaseSpeed);
-        router.attach("/stop", decreaseSpeed);
-        router.attach("/recalculate", decreaseSpeed);
-        router.attach("/comeHome", speedMonitor);
+                
+        router.attach("/enterPath/{coordinates}", setPath);
+        router.attach("/startFollowing",startFollowing);
+        router.attach("/stopFollowing",stopFollowing);
         
         return router;
     }
