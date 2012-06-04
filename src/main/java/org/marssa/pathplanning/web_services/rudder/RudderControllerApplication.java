@@ -1,4 +1,4 @@
-package autopilot;
+package org.marssa.pathplanning.web_services.rudder;
 
 import java.util.ArrayList;
 
@@ -6,6 +6,8 @@ import mise.marssa.footprint.datatypes.MBoolean;
 import mise.marssa.footprint.datatypes.decimal.MDecimal;
 import mise.marssa.footprint.exceptions.NoConnection;
 
+import org.marssa.pathplanning.constants.Constants;
+import org.marssa.pathplanning.control.rudder.RudderController;
 import org.restlet.Application;
 import org.restlet.Request;
 import org.restlet.Response;

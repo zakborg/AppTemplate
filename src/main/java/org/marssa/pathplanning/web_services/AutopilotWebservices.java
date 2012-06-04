@@ -1,6 +1,18 @@
-package autopilot;
+package org.marssa.pathplanning.web_services;
 
 import java.util.ArrayList;
+
+import org.marssa.pathplanning.web_services.StaticFileServerApplication;
+import org.marssa.pathplanning.constants.Constants;
+import org.marssa.pathplanning.control.electrical_motor.MotorController;
+import org.marssa.pathplanning.control.path_planning.PathPlanningController;
+import org.marssa.pathplanning.control.rudder.RudderController;
+import org.marssa.pathplanning.web_services.GPS_Receiver.GPSReceiverApplication;
+import org.marssa.pathplanning.web_services.motionControlPage.MotionControlPageApplication;
+import org.marssa.pathplanning.web_services.motor.MotorControllerApplication;
+import org.marssa.pathplanning.web_services.path_planning.PathControllerApplication;
+import org.marssa.pathplanning.web_services.path_planning_page.PathControlPageApplication;
+import org.marssa.pathplanning.web_services.rudder.RudderControllerApplication;
 import org.restlet.Component;
 import org.restlet.Server;
 import org.restlet.data.CacheDirective;

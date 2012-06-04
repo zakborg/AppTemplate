@@ -1,4 +1,4 @@
-package autopilot;
+package org.marssa.pathplanning.constants;
 
 import java.io.File;
 import mise.marssa.footprint.datatypes.MString;

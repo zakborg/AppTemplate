@@ -1,4 +1,4 @@
-package autopilot;
+package org.marssa.pathplanning.web_services.motor;
 
 import java.util.ArrayList;
 
@@ -6,8 +6,9 @@ import mise.marssa.footprint.datatypes.decimal.MDecimal;
 import mise.marssa.footprint.exceptions.ConfigurationError;
 import mise.marssa.footprint.exceptions.NoConnection;
 import mise.marssa.footprint.exceptions.OutOfRange;
-import mise.marssa.services.navigation.GpsReceiver;
 
+import org.marssa.pathplanning.constants.Constants;
+import org.marssa.pathplanning.control.electrical_motor.MotorController;
 import org.restlet.Application;
 import org.restlet.Request;
 import org.restlet.Response;
@@ -17,22 +18,15 @@ import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.routing.Router;
 
-public class PathControllerApplication extends Application {
+public class MotorControllerApplication extends Application {
 
 	private ArrayList<CacheDirective> cacheDirectives;
 	private MotorController motorController;
-	private RudderController rudderController;
-	private GpsReceiver gpsReceiver;
-	private PathPlanningController pathPlanningController;
 	
-	public PathControllerApplication(ArrayList<CacheDirective> cacheDirectives, MotorController motorController, 
-			RudderController rudderController, GpsReceiver gpsReceiver, PathPlanningController pathPlanningController) {
+
+	public MotorControllerApplication(ArrayList<CacheDirective> cacheDirectives, MotorController motorController) {
 		this.cacheDirectives = cacheDirectives;
 		this.motorController = motorController;
-		this.rudderController = rudderController;
-		this.gpsReceiver = gpsReceiver;
-		this.pathPlanningController =pathPlanningController;
-		pathPlanningController.setAll(motorController,rudderController,gpsReceiver);
 	}
 
     /**
@@ -41,7 +35,8 @@ public class PathControllerApplication extends Application {
     @Override
     public synchronized Restlet createInboundRoot() {
         Router router = new Router(getContext());
-                // Create the motor speed control handler
+        
+        // Create the motor speed control handler
         Restlet speedControl = new Restlet() {
         	@Override
             public void handle(Request request, Response response) {
@@ -126,11 +121,10 @@ public class PathControllerApplication extends Application {
             }
         };
         
-        router.attach("/nextWayPoint/{speed}", speedControl);
-        router.attach("/start", increaseSpeed);
-        router.attach("/stop", decreaseSpeed);
-        router.attach("/recalculate", decreaseSpeed);
-        router.attach("/comeHome", speedMonitor);
+        router.attach("/speed/{speed}", speedControl);
+        router.attach("/increaseSpeed", increaseSpeed);
+        router.attach("/decreaseSpeed", decreaseSpeed);
+        router.attach("/speed", speedMonitor);
         
         return router;
     }

@@ -1,4 +1,4 @@
-package autopilot;
+package org.marssa.pathplanning.web_services.GPS_Receiver;
 
 import java.util.ArrayList;
 

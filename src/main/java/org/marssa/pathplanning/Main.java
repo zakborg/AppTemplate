@@ -1,4 +1,4 @@
-package autopilot;
+package org.marssa.pathplanning;
 
 
 import java.net.UnknownHostException;
@@ -10,7 +10,13 @@ import mise.marssa.footprint.exceptions.OutOfRange;
 import mise.marssa.services.diagnostics.daq.LabJackU3;
 import mise.marssa.services.navigation.GpsReceiver;
 
+import org.marssa.pathplanning.constants.Constants;
+import org.marssa.pathplanning.control.electrical_motor.MotorController;
+import org.marssa.pathplanning.control.path_planning.PathPlanningController;
+import org.marssa.pathplanning.control.rudder.RudderController;
+import org.marssa.pathplanning.web_services.AutopilotWebservices;
 import org.slf4j.LoggerFactory;
+
 
 import ch.qos.logback.classic.Logger;
 public class Main {
@@ -46,18 +52,17 @@ public class Main {
 
 			logger.info("Initialising rudder controller ... ");
 			rudderController = new RudderController(labJack);
-			logger.info("Rudder controller initialised successfully");
-			
-			
-			logger.info("Initialising Path Planning controller ... ");
-			pathPlanningController = new PathPlanningController();
-			logger.info("Path Planning controller initialised successfully");
-			
+			logger.info("Rudder controller initialised successfully");	
             			
 			logger.info("Initialising GPS receiver ... ");
 			gpsReceiver = new GpsReceiver(Constants.GPS.HOST,
 					Constants.GPS.PORT);
 			logger.info("GPS receiver initialised successfully");
+			
+
+			logger.info("Initialising Path Planning controller ... ");
+			pathPlanningController = new PathPlanningController(motorController,rudderController,gpsReceiver);
+			logger.info("Path Planning controller initialised successfully");
 			
 			logger.info("Initialising web services ... ");
 			webServices = new AutopilotWebservices( motorController,

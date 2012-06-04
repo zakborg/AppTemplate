@@ -1,4 +1,4 @@
-package autopilot;
+package org.marssa.pathplanning.web_services.path_planning_page;
 
 import java.util.ArrayList;
 
@@ -6,6 +6,9 @@ import mise.marssa.footprint.datatypes.decimal.MDecimal;
 import mise.marssa.footprint.exceptions.NoConnection;
 import mise.marssa.services.navigation.GpsReceiver;
 
+import org.marssa.pathplanning.control.electrical_motor.MotorController;
+import org.marssa.pathplanning.control.path_planning.PathPlanningController;
+import org.marssa.pathplanning.control.rudder.RudderController;
 import org.restlet.Application;
 import org.restlet.Request;
 import org.restlet.Response;

@@ -1,4 +1,6 @@
-package autopilot;
+package org.marssa.pathplanning.control.electrical_motor;
+
+import org.marssa.pathplanning.constants.Constants;
 
 import mise.marssa.footprint.datatypes.MBoolean;
 import mise.marssa.footprint.datatypes.decimal.MDecimal;
@@ -12,16 +14,17 @@ import mise.marssa.services.control.Ramping.RampingType;
 import mise.marssa.services.diagnostics.daq.LabJack;
 import mise.marssa.services.diagnostics.daq.LabJackU3;
 import mise.marssa.services.diagnostics.daq.LabJackU3.TimerConfigModeU3;
-import mise.marssa.services.navigation.GpsReceiver;
 
 /**
  * @author Clayton Tabone
  * 
  */
-public class PathPlanningController implements IMotorController {
-	private MotorController motorController;
-	private RudderController rudderController;
-	private GpsReceiver gpsReceiver;
+public class MotorController implements IMotorController {
+	private final MInteger MOTOR_0_DIRECTION = LabJack.FIO6_ADDR;
+	private final MInteger MOTOR_1_DIRECTION = LabJack.FIO7_ADDR;
+	private final MInteger STEP_DELAY = new MInteger(20);
+	private final MDecimal STEP_SIZE = new MDecimal(1.0f);
+	private LabJackU3 lj;
 	private Ramping ramping;
 
 	/**
@@ -30,20 +33,22 @@ public class PathPlanningController implements IMotorController {
 	 * @throws NoConnection
 	 * 
 	 */
-	
-	public PathPlanningController()
-	{
-		
+	public MotorController(LabJackU3 lj) throws ConfigurationError, OutOfRange,
+			NoConnection {
+		this.lj = lj;
+		lj.setTimerMode(LabJackU3.TimerU3.TIMER_0,
+				TimerConfigModeU3.PWM_OUTPUT_16BIT);
+		lj.setTimerMode(LabJackU3.TimerU3.TIMER_1,
+				TimerConfigModeU3.PWM_OUTPUT_16BIT);
+		lj.setTimerBaseClock(LabJackU3.TimerBaseClockU3.CLOCK_4_MHZ_DIVISOR);
+		lj.setTimerClockDivisor(new MInteger(2));
+		lj.setTimerValue(LabJackU3.TimerU3.TIMER_0,
+				new MInteger((int) Math.pow(2, 32) - 1));
+		lj.setTimerValue(LabJackU3.TimerU3.TIMER_1,
+				new MInteger((int) Math.pow(2, 32) - 1));
+		this.ramping = new Ramping(STEP_DELAY, STEP_SIZE, this,
+				RampingType.ACCELERATED);
 	}
-	
-	public void setAll(MotorController motorController, 
-			RudderController rudderController, GpsReceiver gpsReceiver)
-	{
-		this.motorController = motorController;
-		this.rudderController = rudderController;
-		this.gpsReceiver = gpsReceiver;
-	}
-
 
 	public void outputValue(MDecimal motorSpeed) throws ConfigurationError,
 			OutOfRange, NoConnection {

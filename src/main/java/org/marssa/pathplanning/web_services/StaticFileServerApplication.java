@@ -1,4 +1,6 @@
-package autopilot;
+package org.marssa.pathplanning.web_services;
+
+import org.marssa.pathplanning.constants.Constants;
 import org.restlet.Application;
 import org.restlet.Restlet;
 import org.restlet.resource.Directory;
