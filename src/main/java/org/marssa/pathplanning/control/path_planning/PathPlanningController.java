@@ -2,6 +2,7 @@ package org.marssa.pathplanning.control.path_planning;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentMap;
 
 import mise.marssa.footprint.datatypes.MBoolean;
 import mise.marssa.footprint.datatypes.composite.Coordinate;
@@ -24,6 +25,7 @@ import mise.marssa.services.scheduling.MTimerTask;
 import org.marssa.pathplanning.constants.Constants;
 import org.marssa.pathplanning.control.electrical_motor.MotorController;
 import org.marssa.pathplanning.control.rudder.RudderController;
+import org.marssa.pathplanning.web_services.path_planning.Waypoint;
 
 /**
  * @author Clayton Tabone
@@ -57,7 +59,7 @@ public class PathPlanningController extends MTimerTask implements IMotorControll
 	private Coordinate nextHeading;
 	private int count = 0;
 	private LabJack lj;
-	ArrayList<Coordinate> pathList;
+	ArrayList<Waypoint> wayPointList;
 	MTimer timer;
 	/**
 	 * @throws ConfigurationError
@@ -72,19 +74,16 @@ public class PathPlanningController extends MTimerTask implements IMotorControll
 		this.rudderController = rudderController;
 		this.gpsReceiver = gpsReceiver;
 		timer = MTimer.getInstance();
-		pathList = new ArrayList<Coordinate>();
+		wayPointList = new ArrayList<Waypoint>();
 	}
 	
-	
-	//Path Planning Controller
-	
-	public ArrayList<Coordinate> getPathList() {
-		return pathList;
+	public ArrayList<Waypoint> getPathList() {
+		return wayPointList;
 	}
 
 
-	public void setPathList(ArrayList<Coordinate> pathList) {
-		this.pathList = pathList;
+	public void setPathList(ArrayList<Waypoint> wayPointList) {
+		this.wayPointList = wayPointList;
 	}
 
 
@@ -169,7 +168,7 @@ public class PathPlanningController extends MTimerTask implements IMotorControll
 	
 	public boolean endOfTrip()
 	{
-		if (count == pathList.size())
+		if (count == wayPointList.size())
 		{
 			return true;
 		}
@@ -189,7 +188,7 @@ public class PathPlanningController extends MTimerTask implements IMotorControll
 			else if (arrived() && ! endOfTrip())
 			{
 				count++;
-				setNextHeading(pathList.get(count)); 
+				setNextHeading(wayPointList.get(count).getCoordinate()); 
 				drive();
 			}
 			else
@@ -216,7 +215,7 @@ public class PathPlanningController extends MTimerTask implements IMotorControll
 	
 	public void startFollowingPath()
 	{
-		setNextHeading(pathList.get(count)); 
+		setNextHeading(wayPointList.get(count).getCoordinate()); 
 		timer.addSchedule(this , 1000);
 	}
 	

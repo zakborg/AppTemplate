@@ -1,6 +1,8 @@
 package org.marssa.pathplanning.web_services.path_planning;
 
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import mise.marssa.footprint.datatypes.decimal.MDecimal;
 import mise.marssa.footprint.exceptions.ConfigurationError;
@@ -28,6 +30,8 @@ public class PathControllerApplication extends Application {
 	private RudderController rudderController;
 	private GpsReceiver gpsReceiver;
 	private PathPlanningController pathPlanningController;
+		private final ConcurrentMap<String, Waypoint> waypoints =   
+            new ConcurrentHashMap<String, Waypoint>();  
 	
 	public PathControllerApplication(ArrayList<CacheDirective> cacheDirectives, MotorController motorController, 
 			RudderController rudderController, GpsReceiver gpsReceiver, PathPlanningController pathPlanningController) {
@@ -38,13 +42,20 @@ public class PathControllerApplication extends Application {
 		this.pathPlanningController =pathPlanningController;
 	}
 
+	
+	public ConcurrentMap<String, Waypoint> getWaypoints() {  
+		ArrayList<Waypoint> waypointList = new ArrayList<Waypoint>(waypoints.values());
+		pathPlanningController.setPathList(waypointList);
+		return waypoints;  
+    }  
+	
     /**
      * Creates a root Restlet that will receive all incoming calls.
      */
     @Override
     public synchronized Restlet createInboundRoot() {
         Router router = new Router(getContext());
-                // Create the motor speed control handler
+         // Stop the Path following
         Restlet stopFollowing = new Restlet() {
         	@Override
             public void handle(Request request, Response response) {
@@ -58,7 +69,7 @@ public class PathControllerApplication extends Application {
             }
         };
         
-        // Create the increase motor speed control handler
+        // Start the path following
         Restlet startFollowing = new Restlet() {
         	@Override
             public void handle(Request request, Response response) {
@@ -72,35 +83,9 @@ public class PathControllerApplication extends Application {
             }
         };
         
-        // Create the decrease motor speed control handler
-        Restlet setPath = new Restlet() {
-        	@Override
-            public void handle(Request request, Response response) {
-        		response.setCacheDirectives(cacheDirectives);
-        		try {
-        			boolean direction = Boolean.parseBoolean(request.getAttributes().get("coordinates").toString());
-        			pathPlanningController.setPathList(pathList);
-    				response.setEntity("Decreasing motor speed by " + Constants.MOTOR.STEP_SIZE + "%", MediaType.TEXT_PLAIN);
-        		} catch (NumberFormatException e) {
-        			response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, "The value of the speed resource has an incorrect format");
-        		} catch (InterruptedException e) {
-        			response.setStatus(Status.INFO_PROCESSING, "The ramping routinee has been interrupted");
-        			e.printStackTrace();
-				} catch (ConfigurationError e) {
-					response.setStatus(Status.SERVER_ERROR_INTERNAL, "The request has returned a ConfigurationError");
-					e.printStackTrace();
-				} catch (OutOfRange e) {
-					response.setStatus(Status.SERVER_ERROR_INTERNAL, "The specified value is out of range");
-					e.printStackTrace();
-				} catch (NoConnection e) {
-					response.setStatus(Status.SERVER_ERROR_INTERNAL, "No connection error has been returned");
-					e.printStackTrace();
-				}
-            }
-        };
-        
+              
                 
-        router.attach("/enterPath/{coordinates}", setPath);
+        router.attach("/enterwaypoints", WayPointResource.class);
         router.attach("/startFollowing",startFollowing);
         router.attach("/stopFollowing",stopFollowing);
         
