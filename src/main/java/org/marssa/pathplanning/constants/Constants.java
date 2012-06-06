@@ -67,7 +67,12 @@ public class Constants {
 		public final static MInteger ROTATIONS = new MInteger(5);
 		public final static MInteger BIG_ROTATIONS = new MInteger(20);
 	}
-
+	
+	public final static class PATH {
+		public final static MDecimal  Path_Accuracy_Lower = new MDecimal(10);
+		public final static MDecimal  Path_Accuracy_Upper = new MDecimal(20);
+		
+	}
 	/**
 	 * GPS Constants
 	 * @author Clayton Tabone

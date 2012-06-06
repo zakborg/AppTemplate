@@ -55,12 +55,13 @@ public class PathControllerApplication extends Application {
     @Override
     public synchronized Restlet createInboundRoot() {
         Router router = new Router(getContext());
-         // Stop the Path following
+         // This RESTLET is used to tell the path following controller to stop the path following procedure.
         Restlet stopFollowing = new Restlet() {
         	@Override
             public void handle(Request request, Response response) {
         		response.setCacheDirectives(cacheDirectives);
         		try {
+        			//We here call upon the stopfollowingpath method using the pathplanningcontroller instance.
         			pathPlanningController.stopFollowingPath();
         			response.setEntity("The system has stopped following the path ", MediaType.TEXT_PLAIN);
         		} catch (NumberFormatException e) {
@@ -70,11 +71,13 @@ public class PathControllerApplication extends Application {
         };
         
         // Start the path following
+     // This RESTLET is used to tell the path following controller to initiate the path following procedure.
         Restlet startFollowing = new Restlet() {
         	@Override
             public void handle(Request request, Response response) {
         		response.setCacheDirectives(cacheDirectives);
         		try {
+        			//We here call upon the startfollowingpath method using the pathplanningcontroller instance.
         			pathPlanningController.startFollowingPath();
         			response.setEntity("The system has started following the path ", MediaType.TEXT_PLAIN);
         		} catch (NumberFormatException e) {
@@ -86,8 +89,11 @@ public class PathControllerApplication extends Application {
               
                 
         router.attach("/enterwaypoints", WayPointResource.class);
+        //the enterwaypoints method is called upon by the from end using a @post annotation. The waypointsresource class is used to receive the data.
         router.attach("/startFollowing",startFollowing);
+        //The startFollowing method defined above is called upon when the front end initiates a request
         router.attach("/stopFollowing",stopFollowing);
+        //The stopFollowing method defined above is called upon when the front end initiates a request
         
         return router;
     }

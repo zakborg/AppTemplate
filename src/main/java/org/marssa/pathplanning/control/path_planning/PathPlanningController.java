@@ -95,41 +95,49 @@ public class PathPlanningController extends MTimerTask implements IMotorControll
 		this.nextHeading = nextHeading;
 	}
 	
+	// This method is called upon to drive the vessel in the right direction
 	public void drive() throws NoConnection, NoValue, OutOfRange, InterruptedException {
 		
 		double currentHeading = gpsReceiver.getCOG().doubleValue();
 		double targetHeading = determineHeading();
 		double difference =  (currentHeading - targetHeading) * -1;
 		
-		if ((difference >= 5) && (difference <= 15))
+		//if the difference is minimal the system will enter this if statement and adjust the rudder slightly
+		if (difference < Constants.PATH.Path_Accuracy_Lower.doubleValue())
+		{
+			rotateToCentre(); 
+		}
+		if ((difference >= Constants.PATH.Path_Accuracy_Lower.doubleValue()) && (difference <= Constants.PATH.Path_Accuracy_Upper.doubleValue()))
 		{
 			if (currentHeading < targetHeading)
 			{
 				rudderController.rotateMultiple(Constants.RUDDER.ROTATIONS, new MBoolean(true));
-				rotateToCentre();
+				//rotateToCentre(); //the rudders are brought back into the center after directing the vessel.
 			}
 			else
 			{
 				rudderController.rotateMultiple(Constants.RUDDER.ROTATIONS, new MBoolean(false));
-				rotateToCentre();
+				//rotateToCentre();
 			}
 		}
-		else if (difference > 15)
+		//if the difference is large the system will enter this if statement and adjust the rudder a lot
+		else if (difference > Constants.PATH.Path_Accuracy_Upper.doubleValue())
 		{
 			if (currentHeading < targetHeading)
 			{
 				rudderController.rotateMultiple(Constants.RUDDER.BIG_ROTATIONS , new MBoolean(true));
-				rotateToCentre();
+				//rotateToCentre();
 			}
 			else
 			{
 				rudderController.rotateMultiple(Constants.RUDDER.BIG_ROTATIONS , new MBoolean(false));
-				rotateToCentre();
+				//rotateToCentre();
 			}
 		}
 		//calculate bearing
 	}
 	
+	//This method is used to determine the bearing we should be on to reach the next way point
 	public double determineHeading() throws NoConnection, NoValue, OutOfRange
 	{
 		Coordinate currentPosition = gpsReceiver.getCoordinate();
@@ -142,6 +150,9 @@ public class PathPlanningController extends MTimerTask implements IMotorControll
 		        Math.sin(nextHeading.getLatitude().getDMS().doubleValue())*Math.cos(currentPosition.getLatitude().getDMS().doubleValue())*Math.cos(dLon);
 		return Math.atan2(y, x);
 	}
+	
+	//this method is used to determine if we have arrived at the next destination. This is calculated if the distance between our current position and
+	//the target waypoint is less than 10 meters
 	public boolean arrived() throws NoConnection, NoValue, OutOfRange
 	{
 		Coordinate currentPosition = gpsReceiver.getCoordinate();
@@ -166,6 +177,7 @@ public class PathPlanningController extends MTimerTask implements IMotorControll
 		}
 	}
 	
+	//This method is used in order to check if the end of the trip has been reached, i.e there are no more way points in the list.
 	public boolean endOfTrip()
 	{
 		if (count == wayPointList.size())
@@ -178,22 +190,23 @@ public class PathPlanningController extends MTimerTask implements IMotorControll
 		}
 	}
 	
+	//This method is called upon every 1 second by the timer event.
 	public void run()
 	{
 		try {
-			if (arrived() && endOfTrip())
+			if (arrived() && endOfTrip()) //If we have arrived and its the end of the trip (no more way points)
 			{
-				motorController.rampTo(new MDecimal(0));
+				motorController.rampTo(new MDecimal(0)); //we then kill the engines
 			}
-			else if (arrived() && ! endOfTrip())
+			else if (arrived() && ! endOfTrip()) //if we have arrived at our next way point but its not the end of the trip
 			{
 				count++;
-				setNextHeading(wayPointList.get(count).getCoordinate()); 
+				setNextHeading(wayPointList.get(count).getCoordinate()); //we get the next way points from the list and drive.
 				drive();
 			}
 			else
 			{
-				drive();
+				drive();//else if we are on our way to the next way point we continue driving the vessel
 			}
 		} catch (NoConnection e) {
 			// TODO Auto-generated catch block
@@ -213,15 +226,18 @@ public class PathPlanningController extends MTimerTask implements IMotorControll
 		}
 	}
 	
+	//this method is called upon by the RESTlet web services.
 	public void startFollowingPath()
 	{
-		setNextHeading(wayPointList.get(count).getCoordinate()); 
-		timer.addSchedule(this , 1000);
+		count =0;
+		setNextHeading(wayPointList.get(count).getCoordinate()); //we set the next way point to the first in the list
+		timer.addSchedule(this , 1000); //we create the timer schedule for every 1 sec.
 	}
 	
+	//This method is called upon by the RESTlet web services.
 	public void stopFollowingPath()
 	{
-		timer.cancel();
+		timer.cancel(); //this cancels the timer.
 	}
 	//Path Planning Controller
 	//Motor Controller
